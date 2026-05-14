@@ -3,6 +3,11 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Order from '../models/Order.js';
 import Payment from '../models/Payment.js';
+import Service from '../models/Service.js';
+import User from '../models/User.js';
+import generateReceipt from '../utils/pdfGenerator.js';
+import { sendPaymentSuccessEmail } from '../utils/emailService.js';
+import { sendOrderNotification } from '../utils/whatsappService.js';
 
 const router = express.Router();
 
@@ -63,14 +68,27 @@ router.post('/verify-payment', async (req, res) => {
       );
 
       const payment = await Payment.findOne({ razorpayOrderId });
-      await Order.findByIdAndUpdate(payment.orderId, {
+      const order = await Order.findByIdAndUpdate(payment.orderId, {
         razorpayPaymentId,
         paymentStatus: 'completed',
         paidAt: new Date(),
         status: 'confirmed',
-      });
+      }, { new: true });
 
-      res.json({ success: true, message: 'Payment verified' });
+      // Generate receipt
+      const service = await Service.findById(order.serviceId);
+      const user = await User.findById(order.userId);
+      const receiptUrl = await generateReceipt(order, service, user);
+      order.receiptUrl = receiptUrl;
+      await order.save();
+
+      // Send email notification
+      await sendPaymentSuccessEmail(order, service, user, receiptUrl);
+
+      // Send WhatsApp notification
+      await sendOrderNotification(order, 'confirmed');
+
+      res.json({ success: true, message: 'Payment verified', receiptUrl });
     } else {
       res.status(400).json({ success: false, message: 'Invalid signature' });
     }
