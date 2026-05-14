@@ -45,12 +45,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-## 🔐 Admin Credentials
-- Username: `imjayvyas`
-- Password: `232919`
 
 ## 📞 Contact
 - Email: hello@jaysoftshine.com
-- Location: Kota, Rajasthan, India
+- Location: Udaipur, Rajasthan, India
 
 Built with ❤️ for JaySoftShine Consulting
